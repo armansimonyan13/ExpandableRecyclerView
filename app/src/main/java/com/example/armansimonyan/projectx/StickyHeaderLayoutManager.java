@@ -16,6 +16,11 @@ public class StickyHeaderLayoutManager extends RecyclerView.LayoutManager {
 	private int firstVisiblePosition;
 	private int lastVisiblePosition;
 
+	private int currentStickyHeaderPosition;
+	private int currentStickyHeaderTopOffset;
+	private int nextStickyHeaderPosition;
+	private int nextStickyHeaderTopOffset;
+
 	@Override
 	public RecyclerView.LayoutParams generateDefaultLayoutParams() {
 		return new RecyclerView.LayoutParams(RecyclerView.LayoutParams.MATCH_PARENT, RecyclerView.LayoutParams.WRAP_CONTENT);
@@ -34,10 +39,17 @@ public class StickyHeaderLayoutManager extends RecyclerView.LayoutManager {
 
 		firstVisiblePosition = lastVisiblePosition = 0;
 		firstItemTopOffset = lastItemBottomOffset = 0;
+		currentStickyHeaderPosition = 0;
+		currentStickyHeaderTopOffset = 0;
+		nextStickyHeaderPosition = 0;
 		while (true) {
 			View view = recycler.getViewForPosition(lastVisiblePosition);
 			measureChildWithMargins(view, 0, 0);
 			int childHeight = view.getMeasuredHeight();
+			if (nextStickyHeaderPosition == 0 && lastVisiblePosition != firstVisiblePosition && getItemViewType(view) == MainActivity.Adapter.GROUP_TYPE) {
+				nextStickyHeaderPosition = lastVisiblePosition;
+				nextStickyHeaderTopOffset = lastItemBottomOffset;
+			}
 			lastItemBottomOffset += childHeight;
 			if (lastItemBottomOffset > getHeight() - getPaddingBottom()) {
 				break;
@@ -45,6 +57,7 @@ public class StickyHeaderLayoutManager extends RecyclerView.LayoutManager {
 			lastVisiblePosition++;
 		}
 
+		log();
 		fill(recycler, state, 1);
 	}
 
@@ -86,6 +99,12 @@ public class StickyHeaderLayoutManager extends RecyclerView.LayoutManager {
 				nextPosition++;
 			}
 		}
+
+		View view = recycler.getViewForPosition(currentStickyHeaderPosition);
+		addView(view);
+		measureChildWithMargins(view, 0, 0);
+		layoutDecoratedWithMargins(view, 0, currentStickyHeaderTopOffset, view.getMeasuredWidth(), currentStickyHeaderTopOffset + view.getMeasuredHeight());
+
 		log("getChildCount(): " + getChildCount());
 	}
 
@@ -124,6 +143,86 @@ public class StickyHeaderLayoutManager extends RecyclerView.LayoutManager {
 			}
 		}
 
+		if (direction == DIRECTION_UP) {
+			nextStickyHeaderTopOffset -= scroll;
+			View view = recycler.getViewForPosition(currentStickyHeaderPosition);
+			addView(view);
+			measureChildWithMargins(view, 0, 0);
+			currentStickyHeaderTopOffset = 0;
+			if (currentStickyHeaderTopOffset + view.getMeasuredHeight() > nextStickyHeaderTopOffset) {
+				currentStickyHeaderTopOffset = nextStickyHeaderTopOffset - view.getMeasuredHeight();
+			}
+			if (currentStickyHeaderTopOffset + view.getMeasuredHeight() < 0) {
+				currentStickyHeaderPosition = nextStickyHeaderPosition;
+				currentStickyHeaderTopOffset = nextStickyHeaderTopOffset;
+				int bottom = currentStickyHeaderTopOffset;
+				for (int i = currentStickyHeaderPosition + 1; i < getItemCount(); i++) {
+					View nextView = recycler.getViewForPosition(i);
+					addView(nextView);
+					measureChildWithMargins(nextView, 0, 0);
+					bottom += nextView.getMeasuredHeight();
+					removeView(nextView);
+					if (getItemViewType(nextView) == MainActivity.Adapter.GROUP_TYPE) {
+						nextStickyHeaderPosition = i;
+						nextStickyHeaderTopOffset = bottom;
+						break;
+					}
+				}
+			}
+		} else {
+			if (currentStickyHeaderPosition > firstVisiblePosition) {
+				loop:
+				for (int i = currentStickyHeaderPosition - 1; i >= 0; i--) {
+					View previousView = recycler.getViewForPosition(i);
+					if (getItemViewType(previousView) == MainActivity.Adapter.GROUP_TYPE) {
+						nextStickyHeaderPosition = currentStickyHeaderPosition;
+						currentStickyHeaderPosition = i;
+						int bottom = firstItemTopOffset;
+						for (int j = firstVisiblePosition; j < getItemCount(); j++) {
+							View view = recycler.getViewForPosition(j);
+							addView(view);
+							measureChildWithMargins(view, 0, 0);
+							bottom += view.getMeasuredHeight();
+							if (j == nextStickyHeaderPosition - 1) {
+								nextStickyHeaderTopOffset = bottom;
+								if (nextStickyHeaderTopOffset > previousView.getMeasuredHeight()) {
+									currentStickyHeaderTopOffset = 0;
+								} else {
+									currentStickyHeaderTopOffset = nextStickyHeaderTopOffset - previousView.getMeasuredHeight();
+								}
+								break loop;
+							}
+						}
+					}
+				}
+			} else {
+				nextStickyHeaderTopOffset -= scroll;
+				int limit = 0;
+				if (firstVisiblePosition == 0 && firstItemTopOffset == 0) {
+					for (int i = 0; i < getItemCount(); i++) {
+						View view = recycler.getViewForPosition(i);
+						addView(view);
+						measureChildWithMargins(view, 0, 0);
+						limit += view.getMeasuredHeight();
+						removeView(view);
+						if (i == nextStickyHeaderPosition - 1) {
+							nextStickyHeaderTopOffset = limit;
+							break;
+						}
+					}
+				}
+				View view = recycler.getViewForPosition(currentStickyHeaderPosition);
+				addView(view);
+				measureChildWithMargins(view, 0, 0);
+				if (nextStickyHeaderTopOffset > view.getMeasuredHeight()) {
+					currentStickyHeaderTopOffset = 0;
+				} else {
+					currentStickyHeaderTopOffset = nextStickyHeaderTopOffset - view.getMeasuredHeight();
+				}
+				removeView(view);
+			}
+		}
+
 		fill(recycler, state, direction);
 		log();
 		return scroll;
@@ -135,11 +234,14 @@ public class StickyHeaderLayoutManager extends RecyclerView.LayoutManager {
 
 	private void log() {
 		log("State>>>\n" +
-				"firstItemTopOffset: " + firstItemTopOffset + "\n" +
-				"lastItemBottomOffset: " + lastItemBottomOffset + "\n" +
 				"firstVisiblePosition: " + firstVisiblePosition + "\n" +
+				"firstItemTopOffset: " + firstItemTopOffset + "\n" +
 				"lastVisiblePosition: " + lastVisiblePosition + "\n" +
-				"childCount: " + getChildCount()
+				"lastItemBottomOffset: " + lastItemBottomOffset + "\n" +
+				"currentStickyHeaderPosition: " + currentStickyHeaderPosition + "\n" +
+				"currentStickyHeaderTopOffset: " + currentStickyHeaderTopOffset + "\n" +
+				"nextStickyHeaderPosition: " + nextStickyHeaderPosition + "\n" +
+				"nextStickyHeaderTopOffset: " + nextStickyHeaderTopOffset + "\n"
 		);
 	}
 }
