@@ -223,6 +223,7 @@ public class StickyHeaderLayoutManager extends RecyclerView.LayoutManager {
 		}
 
 		View view = recycler.getViewForPosition(currentStickyHeaderPosition);
+		recycler.bindViewToPosition(view, currentStickyHeaderPosition);
 		addView(view);
 		measureChildWithMargins(view, 0, 0);
 		layoutDecoratedWithMargins(view, 0, currentStickyHeaderTopOffset, view.getMeasuredWidth(), currentStickyHeaderTopOffset + view.getMeasuredHeight());
