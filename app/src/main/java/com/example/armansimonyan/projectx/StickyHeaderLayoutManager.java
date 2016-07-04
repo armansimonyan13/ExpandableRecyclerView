@@ -66,7 +66,7 @@ public class StickyHeaderLayoutManager extends RecyclerView.LayoutManager {
 		}
 
 		log();
-		fill(recycler, state, 1);
+		fill(recycler, state, DIRECTION_UP);
 	}
 
 	@Override
@@ -238,8 +238,6 @@ public class StickyHeaderLayoutManager extends RecyclerView.LayoutManager {
 		addView(view);
 		measureChildWithMargins(view, 0, 0);
 		layoutDecoratedWithMargins(view, 0, currentStickyHeaderTopOffset, view.getMeasuredWidth(), currentStickyHeaderTopOffset + view.getMeasuredHeight());
-		MainActivity.GroupViewHolder groupViewHolder = (MainActivity.GroupViewHolder) view.getTag();
-		log("stickyHeaderArrowRotation: " + groupViewHolder.imageView.getRotation());
 
 		log("getChildCount(): " + getChildCount());
 		log("scrapListSize: " + recycler.getScrapList().size());
