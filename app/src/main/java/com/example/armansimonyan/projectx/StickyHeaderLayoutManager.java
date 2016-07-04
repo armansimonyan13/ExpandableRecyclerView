@@ -167,7 +167,7 @@ public class StickyHeaderLayoutManager extends RecyclerView.LayoutManager {
 						addView(view);
 						measureChildWithMargins(view, 0, 0);
 						limit += view.getMeasuredHeight();
-						removeView(view);
+						removeAndRecycleView(view, recycler);
 						if (i == nextStickyHeaderPosition - 1) {
 							nextStickyHeaderTopOffset = limit;
 							break;
@@ -182,7 +182,7 @@ public class StickyHeaderLayoutManager extends RecyclerView.LayoutManager {
 				} else {
 					currentStickyHeaderTopOffset = nextStickyHeaderTopOffset - view.getMeasuredHeight();
 				}
-				removeView(view);
+				removeAndRecycleView(view, recycler);
 			}
 		}
 
