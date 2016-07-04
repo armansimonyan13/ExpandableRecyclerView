@@ -61,53 +61,6 @@ public class StickyHeaderLayoutManager extends RecyclerView.LayoutManager {
 		fill(recycler, state, 1);
 	}
 
-	private void fill(RecyclerView.Recycler recycler, RecyclerView.State state, int direction) {
-		detachAndScrapAttachedViews(recycler);
-
-		if (direction == DIRECTION_UP) {
-			int bottom = lastItemBottomOffset;
-			int nextPosition = lastVisiblePosition;
-			while (true) {
-				View view = recycler.getViewForPosition(nextPosition);
-				addView(view);
-				measureChildWithMargins(view, 0, 0);
-				int top = bottom - view.getMeasuredHeight();
-				layoutDecoratedWithMargins(view, 0, top, view.getMeasuredWidth(), bottom);
-				if (top <= 0) {
-					firstVisiblePosition = nextPosition;
-					firstItemTopOffset = top;
-					break;
-				}
-				bottom = top;
-				nextPosition--;
-			}
-		} else {
-			int top = firstItemTopOffset;
-			int nextPosition = firstVisiblePosition;
-			while (true) {
-				View view = recycler.getViewForPosition(nextPosition);
-				addView(view);
-				measureChildWithMargins(view, 0, 0);
-				int bottom = top + view.getMeasuredHeight();
-				layoutDecoratedWithMargins(view, 0, top, view.getMeasuredWidth(), bottom);
-				if (bottom >= getHeight()) {
-					lastVisiblePosition = nextPosition;
-					lastItemBottomOffset = bottom;
-					break;
-				}
-				top = bottom;
-				nextPosition++;
-			}
-		}
-
-		View view = recycler.getViewForPosition(currentStickyHeaderPosition);
-		addView(view);
-		measureChildWithMargins(view, 0, 0);
-		layoutDecoratedWithMargins(view, 0, currentStickyHeaderTopOffset, view.getMeasuredWidth(), currentStickyHeaderTopOffset + view.getMeasuredHeight());
-
-		log("getChildCount(): " + getChildCount());
-	}
-
 	@Override
 	public int scrollVerticallyBy(int dy, RecyclerView.Recycler recycler, RecyclerView.State state) {
 		int direction = dy > 0 ? DIRECTION_UP : DIRECTION_DOWN;
@@ -148,6 +101,7 @@ public class StickyHeaderLayoutManager extends RecyclerView.LayoutManager {
 			View view = recycler.getViewForPosition(currentStickyHeaderPosition);
 			addView(view);
 			measureChildWithMargins(view, 0, 0);
+			removeAndRecycleView(view, recycler);
 			currentStickyHeaderTopOffset = 0;
 			if (currentStickyHeaderTopOffset + view.getMeasuredHeight() > nextStickyHeaderTopOffset) {
 				currentStickyHeaderTopOffset = nextStickyHeaderTopOffset - view.getMeasuredHeight();
@@ -161,7 +115,7 @@ public class StickyHeaderLayoutManager extends RecyclerView.LayoutManager {
 					addView(nextView);
 					measureChildWithMargins(nextView, 0, 0);
 					bottom += nextView.getMeasuredHeight();
-					removeView(nextView);
+					removeAndRecycleView(nextView, recycler);
 					if (getItemViewType(nextView) == MainActivity.Adapter.GROUP_TYPE) {
 						nextStickyHeaderPosition = i;
 						nextStickyHeaderTopOffset = bottom;
@@ -183,6 +137,7 @@ public class StickyHeaderLayoutManager extends RecyclerView.LayoutManager {
 							addView(view);
 							measureChildWithMargins(view, 0, 0);
 							bottom += view.getMeasuredHeight();
+							removeAndRecycleView(view, recycler);
 							if (j == nextStickyHeaderPosition - 1) {
 								nextStickyHeaderTopOffset = bottom;
 								if (nextStickyHeaderTopOffset > previousView.getMeasuredHeight()) {
@@ -226,6 +181,57 @@ public class StickyHeaderLayoutManager extends RecyclerView.LayoutManager {
 		fill(recycler, state, direction);
 		log();
 		return scroll;
+	}
+
+	private void fill(RecyclerView.Recycler recycler, RecyclerView.State state, int direction) {
+		detachAndScrapAttachedViews(recycler);
+
+		if (direction == DIRECTION_UP) {
+			int bottom = lastItemBottomOffset;
+			int nextPosition = lastVisiblePosition;
+			while (true) {
+				View view = recycler.getViewForPosition(nextPosition);
+				addView(view);
+				measureChildWithMargins(view, 0, 0);
+				int top = bottom - view.getMeasuredHeight();
+				layoutDecoratedWithMargins(view, 0, top, view.getMeasuredWidth(), bottom);
+				if (top <= 0) {
+					firstVisiblePosition = nextPosition;
+					firstItemTopOffset = top;
+					break;
+				}
+				bottom = top;
+				nextPosition--;
+			}
+		} else {
+			int top = firstItemTopOffset;
+			int nextPosition = firstVisiblePosition;
+			while (true) {
+				View view = recycler.getViewForPosition(nextPosition);
+				addView(view);
+				measureChildWithMargins(view, 0, 0);
+				int bottom = top + view.getMeasuredHeight();
+				layoutDecoratedWithMargins(view, 0, top, view.getMeasuredWidth(), bottom);
+				if (bottom >= getHeight()) {
+					lastVisiblePosition = nextPosition;
+					lastItemBottomOffset = bottom;
+					break;
+				}
+				top = bottom;
+				nextPosition++;
+			}
+		}
+
+		View view = recycler.getViewForPosition(currentStickyHeaderPosition);
+		addView(view);
+		measureChildWithMargins(view, 0, 0);
+		layoutDecoratedWithMargins(view, 0, currentStickyHeaderTopOffset, view.getMeasuredWidth(), currentStickyHeaderTopOffset + view.getMeasuredHeight());
+		MainActivity.GroupViewHolder groupViewHolder = (MainActivity.GroupViewHolder) view.getTag();
+		log("stickyHeaderArrowRotation: " + groupViewHolder.imageView.getRotation());
+
+		log("getChildCount(): " + getChildCount());
+		log("scrapListSize: " + recycler.getScrapList().size());
+		log("scrapList: " + recycler.getScrapList());
 	}
 
 	private void log(String message) {

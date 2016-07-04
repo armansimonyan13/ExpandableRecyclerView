@@ -3,11 +3,12 @@ package com.example.armansimonyan.projectx;
 import android.content.Context;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
-import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.ImageView;
 import android.widget.TextView;
 
 import java.util.ArrayList;
@@ -24,9 +25,12 @@ public class MainActivity extends AppCompatActivity {
 		for (int i = 0; i < 100; i++) {
 			List<ChildItem> items = new ArrayList<>();
 			for (int j = 0; j < 5; j++) {
-				items.add(new ChildItem("Child " + j + "of Group " + i));
+				ChildItem childItem = new ChildItem("Child " + j + "of Group " + i);
+				items.add(childItem);
 			}
-			data.add(new GroupItem("Group " + i, items));
+			GroupItem groupItem = new GroupItem("Group " + i, items);
+			groupItem.setIsExpanded(true);
+			data.add(groupItem);
 		}
 
 		RecyclerView recyclerView = (RecyclerView) findViewById(R.id.recycler);
@@ -63,7 +67,13 @@ public class MainActivity extends AppCompatActivity {
 				GroupViewHolder groupViewHolder = (GroupViewHolder) holder;
 				groupViewHolder.itemView.setOnClickListener(this);
 				groupViewHolder.itemView.setTag(groupViewHolder);
-				groupViewHolder.textView.setText(((GroupItem) getItem(position)).getName());
+				GroupItem groupItem = (GroupItem) getItem(position);
+				groupViewHolder.textView.setText(groupItem.getName());
+				if (groupItem.isExpanded()) {
+					groupViewHolder.imageView.setRotation(90);
+				} else {
+					groupViewHolder.imageView.setRotation(0);
+				}
 			} else if (holder instanceof ChildViewHolder) {
 				ChildViewHolder childViewHolder = (ChildViewHolder) holder;
 				childViewHolder.itemView.setOnClickListener(this);
@@ -102,16 +112,20 @@ public class MainActivity extends AppCompatActivity {
 		public void onClick(View view) {
 			Object holder = view.getTag();
 			if (holder instanceof GroupViewHolder) {
-				GroupViewHolder groupViewHolder = (GroupViewHolder) view.getTag();
+				GroupViewHolder groupViewHolder = (GroupViewHolder) holder;
+				log("adapterPosition: " + groupViewHolder.getAdapterPosition());
+				log("layoutPosition: " + groupViewHolder.getLayoutPosition());
 				int adapterPosition = groupViewHolder.getAdapterPosition();
 				Object item = getItem(adapterPosition);
 				if (item instanceof GroupItem) {
 					GroupItem groupItem = (GroupItem) item;
 					if (groupItem.isExpanded()) {
 						groupItem.setIsExpanded(false);
+						groupViewHolder.imageView.setRotation(0);
 						notifyItemRangeRemoved(adapterPosition + 1, groupItem.getItems().size());
 					} else {
 						groupItem.setIsExpanded(true);
+						groupViewHolder.imageView.setRotation(90);
 						notifyItemRangeInserted(adapterPosition + 1, groupItem.getItems().size());
 					}
 				}
@@ -140,11 +154,13 @@ public class MainActivity extends AppCompatActivity {
 
 	public static class GroupViewHolder extends RecyclerView.ViewHolder {
 		public TextView textView;
+		public ImageView imageView;
 
 		public GroupViewHolder(View itemView) {
 			super(itemView);
 
 			textView = (TextView) itemView.findViewById(R.id.text);
+			imageView = (ImageView) itemView.findViewById(R.id.arrow);
 		}
 	}
 
@@ -156,5 +172,15 @@ public class MainActivity extends AppCompatActivity {
 
 			textView = (TextView) itemView.findViewById(R.id.text);
 		}
+	}
+
+	private static void log(String message) {
+		Log.d("MainActivity>>>: ", message);
+	}
+
+	private static void log() {
+		Log.d("MainActivity>>>: \n",
+				""
+		);
 	}
 }
