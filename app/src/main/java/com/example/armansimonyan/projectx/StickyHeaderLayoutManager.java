@@ -44,8 +44,8 @@ public class StickyHeaderLayoutManager extends RecyclerView.LayoutManager {
 			}
 			tempNextStickyHeaderPosition++;
 		}
-		if (currentStickyHeaderPosition == 0 && nextStickyHeaderPosition == 1 && currentStickyHeaderTopOffset == 0) {
-			firstVisiblePosition = 0;
+		if (currentStickyHeaderPosition == nextStickyHeaderPosition - 1 && currentStickyHeaderTopOffset == 0) {
+			firstVisiblePosition = currentStickyHeaderPosition;
 			firstItemTopOffset = 0;
 		}
 
