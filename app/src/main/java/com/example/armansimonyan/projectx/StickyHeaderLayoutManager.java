@@ -33,15 +33,10 @@ public class StickyHeaderLayoutManager extends RecyclerView.LayoutManager {
 
 	@Override
 	public void onLayoutChildren(RecyclerView.Recycler recycler, RecyclerView.State state) {
-		if (state.isPreLayout()) {
-			return;
-		}
-
-		firstVisiblePosition = lastVisiblePosition = 0;
-		firstItemTopOffset = lastItemBottomOffset = 0;
-		currentStickyHeaderPosition = 0;
-		currentStickyHeaderTopOffset = 0;
-		nextStickyHeaderPosition = 0;
+		lastVisiblePosition = firstVisiblePosition;
+		lastItemBottomOffset = firstItemTopOffset;
+		nextStickyHeaderPosition = currentStickyHeaderPosition;
+		nextStickyHeaderTopOffset = currentStickyHeaderTopOffset;
 		while (true) {
 			View view = recycler.getViewForPosition(lastVisiblePosition);
 			measureChildWithMargins(view, 0, 0);
