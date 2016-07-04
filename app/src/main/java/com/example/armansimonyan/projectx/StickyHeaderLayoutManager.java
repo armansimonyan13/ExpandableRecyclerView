@@ -1,5 +1,6 @@
 package com.example.armansimonyan.projectx;
 
+import android.graphics.Color;
 import android.support.v7.widget.RecyclerView;
 import android.util.Log;
 import android.view.View;
@@ -33,19 +34,31 @@ public class StickyHeaderLayoutManager extends RecyclerView.LayoutManager {
 
 	@Override
 	public void onLayoutChildren(RecyclerView.Recycler recycler, RecyclerView.State state) {
+		nextStickyHeaderPosition = -1;
+		int tempNextStickyHeaderPosition = currentStickyHeaderPosition + 1;
+		while (true) {
+			View nextView = recycler.getViewForPosition(tempNextStickyHeaderPosition);
+			if (getItemViewType(nextView) == MainActivity.Adapter.GROUP_TYPE) {
+				nextStickyHeaderPosition = tempNextStickyHeaderPosition;
+				break;
+			}
+			tempNextStickyHeaderPosition++;
+		}
+		if (currentStickyHeaderPosition == 0 && nextStickyHeaderPosition == 1 && currentStickyHeaderTopOffset == 0) {
+			firstVisiblePosition = 0;
+			firstItemTopOffset = 0;
+		}
+
 		lastVisiblePosition = firstVisiblePosition;
 		lastItemBottomOffset = firstItemTopOffset;
-		nextStickyHeaderPosition = currentStickyHeaderPosition;
-		nextStickyHeaderTopOffset = currentStickyHeaderTopOffset;
 		while (true) {
-			View view = recycler.getViewForPosition(lastVisiblePosition);
-			measureChildWithMargins(view, 0, 0);
-			int childHeight = view.getMeasuredHeight();
-			if (nextStickyHeaderPosition == 0 && lastVisiblePosition != firstVisiblePosition && getItemViewType(view) == MainActivity.Adapter.GROUP_TYPE) {
-				nextStickyHeaderPosition = lastVisiblePosition;
+			View lastVisibleView = recycler.getViewForPosition(lastVisiblePosition);
+			if (lastVisiblePosition == nextStickyHeaderPosition) {
 				nextStickyHeaderTopOffset = lastItemBottomOffset;
 			}
-			lastItemBottomOffset += childHeight;
+			measureChildWithMargins(lastVisibleView, 0, 0);
+			int lastVisibleViewHeight = lastVisibleView.getMeasuredHeight();
+			lastItemBottomOffset += lastVisibleViewHeight;
 			if (lastItemBottomOffset > getHeight() - getPaddingBottom()) {
 				break;
 			}
@@ -186,6 +199,7 @@ public class StickyHeaderLayoutManager extends RecyclerView.LayoutManager {
 			int nextPosition = lastVisiblePosition;
 			while (true) {
 				View view = recycler.getViewForPosition(nextPosition);
+				view.setBackgroundColor(Color.TRANSPARENT);
 				addView(view);
 				measureChildWithMargins(view, 0, 0);
 				int top = bottom - view.getMeasuredHeight();
@@ -203,6 +217,7 @@ public class StickyHeaderLayoutManager extends RecyclerView.LayoutManager {
 			int nextPosition = firstVisiblePosition;
 			while (true) {
 				View view = recycler.getViewForPosition(nextPosition);
+				view.setBackgroundColor(Color.TRANSPARENT);
 				addView(view);
 				measureChildWithMargins(view, 0, 0);
 				int bottom = top + view.getMeasuredHeight();
@@ -218,6 +233,7 @@ public class StickyHeaderLayoutManager extends RecyclerView.LayoutManager {
 		}
 
 		View view = recycler.getViewForPosition(currentStickyHeaderPosition);
+		view.setBackgroundColor(Color.RED);
 		recycler.bindViewToPosition(view, currentStickyHeaderPosition);
 		addView(view);
 		measureChildWithMargins(view, 0, 0);
