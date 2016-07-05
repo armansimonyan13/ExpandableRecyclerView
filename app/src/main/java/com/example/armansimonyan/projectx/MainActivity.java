@@ -38,6 +38,8 @@ public class MainActivity extends AppCompatActivity {
 		recyclerView.setLayoutManager(new StickyHeaderLayoutManager());
 		DefaultItemAnimator itemAnimator = new DefaultItemAnimator();
 		itemAnimator.setRemoveDuration(1000);
+		itemAnimator.setAddDuration(1000);
+		itemAnimator.setMoveDuration(1000);
 		recyclerView.setItemAnimator(itemAnimator);
 		recyclerView.setAdapter(new Adapter(this, data));
 	}

@@ -5,6 +5,9 @@ import android.support.v7.widget.RecyclerView;
 import android.util.Log;
 import android.view.View;
 
+import java.util.ArrayList;
+import java.util.List;
+
 /**
  * @author armansimonyan
  */
@@ -40,7 +43,7 @@ public class StickyHeaderLayoutManager extends RecyclerView.LayoutManager {
 
 	@Override
 	public boolean supportsPredictiveItemAnimations() {
-		return false;
+		return true;
 	}
 
 	@Override
@@ -49,16 +52,32 @@ public class StickyHeaderLayoutManager extends RecyclerView.LayoutManager {
 			firstVisiblePosition = 0;
 			firstItemTopOffset = 0;
 		}
+
+		int extraSpace = 0;
+		if (state.isPreLayout()) {
+			for (int i = 0; i < getChildCount(); i++) {
+				View view = getChildAt(i);
+				RecyclerView.LayoutParams layoutParams = (RecyclerView.LayoutParams) view.getLayoutParams();
+				if (layoutParams.isItemRemoved()) {
+					extraSpace += view.getMeasuredHeight();
+				}
+			}
+		}
+
 		nextStickyHeaderPosition = -1;
 		int tempNextStickyHeaderPosition = currentStickyHeaderPosition + 1;
 		while (true) {
-			View nextView = recycler.getViewForPosition(tempNextStickyHeaderPosition);
+			View nextView = findViewByPosition(tempNextStickyHeaderPosition);
+			if (nextView == null) {
+				nextView = recycler.getViewForPosition(tempNextStickyHeaderPosition);
+			}
 			if (getItemViewType(nextView) == MainActivity.Adapter.GROUP_TYPE) {
 				nextStickyHeaderPosition = tempNextStickyHeaderPosition;
 				break;
 			}
 			tempNextStickyHeaderPosition++;
 		}
+
 		if (currentStickyHeaderPosition == nextStickyHeaderPosition - 1 && currentStickyHeaderTopOffset == 0) {
 			firstVisiblePosition = currentStickyHeaderPosition;
 			firstItemTopOffset = 0;
@@ -67,14 +86,17 @@ public class StickyHeaderLayoutManager extends RecyclerView.LayoutManager {
 		lastVisiblePosition = firstVisiblePosition;
 		lastItemBottomOffset = firstItemTopOffset;
 		while (true) {
-			View lastVisibleView = recycler.getViewForPosition(lastVisiblePosition);
+			View lastVisibleView = findViewByPosition(lastVisiblePosition);
+			if (lastVisibleView == null) {
+				lastVisibleView = recycler.getViewForPosition(lastVisiblePosition);
+			}
 			if (lastVisiblePosition == nextStickyHeaderPosition) {
 				nextStickyHeaderTopOffset = lastItemBottomOffset;
 			}
 			measureChildWithMargins(lastVisibleView, 0, 0);
 			int lastVisibleViewHeight = lastVisibleView.getMeasuredHeight();
 			lastItemBottomOffset += lastVisibleViewHeight;
-			if (lastItemBottomOffset > getHeight() - getPaddingBottom()) {
+			if (lastItemBottomOffset > getHeight() - getPaddingBottom() + extraSpace) {
 				break;
 			}
 			lastVisiblePosition++;
@@ -82,6 +104,26 @@ public class StickyHeaderLayoutManager extends RecyclerView.LayoutManager {
 
 		log();
 		fill(recycler, state, DIRECTION_UP);
+
+		if (!state.isPreLayout()) {
+			List<RecyclerView.ViewHolder> scrapList = recycler.getScrapList();
+			List<View> disappearingViews = new ArrayList<>();
+			for (RecyclerView.ViewHolder viewHolder : scrapList) {
+				RecyclerView.LayoutParams layoutParams = (RecyclerView.LayoutParams) viewHolder.itemView.getLayoutParams();
+				if (!layoutParams.isItemRemoved()) {
+					disappearingViews.add(viewHolder.itemView);
+				}
+			}
+
+			int topOffset = lastItemBottomOffset;
+			for (View view : disappearingViews) {
+				addDisappearingView(view);
+
+				measureChildWithMargins(view, 0, 0);
+				layoutDecoratedWithMargins(view, 0, topOffset, view.getMeasuredWidth(), topOffset + view.getMeasuredHeight());
+				topOffset += view.getMeasuredHeight();
+			}
+		}
 	}
 
 	@Override
