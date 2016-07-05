@@ -28,12 +28,27 @@ public class StickyHeaderLayoutManager extends RecyclerView.LayoutManager {
 	}
 
 	@Override
+	public void onAdapterChanged(RecyclerView.Adapter oldAdapter, RecyclerView.Adapter newAdapter) {
+		super.onAdapterChanged(oldAdapter, newAdapter);
+		removeAllViews();
+	}
+
+	@Override
 	public boolean canScrollVertically() {
 		return true;
 	}
 
 	@Override
+	public boolean supportsPredictiveItemAnimations() {
+		return false;
+	}
+
+	@Override
 	public void onLayoutChildren(RecyclerView.Recycler recycler, RecyclerView.State state) {
+		if (getChildCount() == 0) {
+			firstVisiblePosition = 0;
+			firstItemTopOffset = 0;
+		}
 		nextStickyHeaderPosition = -1;
 		int tempNextStickyHeaderPosition = currentStickyHeaderPosition + 1;
 		while (true) {
@@ -199,7 +214,11 @@ public class StickyHeaderLayoutManager extends RecyclerView.LayoutManager {
 			int nextPosition = lastVisiblePosition;
 			while (true) {
 				View view = recycler.getViewForPosition(nextPosition);
-				view.setBackgroundColor(Color.TRANSPARENT);
+				if (getItemViewType(view) == MainActivity.Adapter.GROUP_TYPE) {
+					view.setBackgroundColor(Color.GREEN);
+				} else {
+					view.setBackgroundColor(Color.YELLOW);
+				}
 				addView(view);
 				measureChildWithMargins(view, 0, 0);
 				int top = bottom - view.getMeasuredHeight();
@@ -217,7 +236,11 @@ public class StickyHeaderLayoutManager extends RecyclerView.LayoutManager {
 			int nextPosition = firstVisiblePosition;
 			while (true) {
 				View view = recycler.getViewForPosition(nextPosition);
-				view.setBackgroundColor(Color.TRANSPARENT);
+				if (getItemViewType(view) == MainActivity.Adapter.GROUP_TYPE) {
+					view.setBackgroundColor(Color.GREEN);
+				} else {
+					view.setBackgroundColor(Color.YELLOW);
+				}
 				addView(view);
 				measureChildWithMargins(view, 0, 0);
 				int bottom = top + view.getMeasuredHeight();
@@ -232,10 +255,15 @@ public class StickyHeaderLayoutManager extends RecyclerView.LayoutManager {
 			}
 		}
 
-		View view = recycler.getViewForPosition(currentStickyHeaderPosition);
+		View view = findViewByPosition(currentStickyHeaderPosition);
+		if (view != null) {
+			detachView(view);
+			attachView(view);
+		} else {
+			view = recycler.getViewForPosition(currentStickyHeaderPosition);
+			addView(view);
+		}
 		view.setBackgroundColor(Color.RED);
-		recycler.bindViewToPosition(view, currentStickyHeaderPosition);
-		addView(view);
 		measureChildWithMargins(view, 0, 0);
 		layoutDecoratedWithMargins(view, 0, currentStickyHeaderTopOffset, view.getMeasuredWidth(), currentStickyHeaderTopOffset + view.getMeasuredHeight());
 

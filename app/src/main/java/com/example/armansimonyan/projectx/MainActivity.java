@@ -3,6 +3,7 @@ package com.example.armansimonyan.projectx;
 import android.content.Context;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.support.v7.widget.DefaultItemAnimator;
 import android.support.v7.widget.RecyclerView;
 import android.util.Log;
 import android.view.LayoutInflater;
@@ -35,6 +36,9 @@ public class MainActivity extends AppCompatActivity {
 
 		RecyclerView recyclerView = (RecyclerView) findViewById(R.id.recycler);
 		recyclerView.setLayoutManager(new StickyHeaderLayoutManager());
+		RecyclerView.ItemAnimator itemAnimator = new DefaultItemAnimator();
+		itemAnimator.setRemoveDuration(1000);
+		recyclerView.setItemAnimator(itemAnimator);
 		recyclerView.setAdapter(new Adapter(this, data));
 	}
 
