@@ -36,7 +36,7 @@ public class MainActivity extends AppCompatActivity {
 
 		RecyclerView recyclerView = (RecyclerView) findViewById(R.id.recycler);
 		recyclerView.setLayoutManager(new StickyHeaderLayoutManager());
-		RecyclerView.ItemAnimator itemAnimator = new DefaultItemAnimator();
+		DefaultItemAnimator itemAnimator = new DefaultItemAnimator();
 		itemAnimator.setRemoveDuration(1000);
 		recyclerView.setItemAnimator(itemAnimator);
 		recyclerView.setAdapter(new Adapter(this, data));

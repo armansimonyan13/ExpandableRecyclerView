@@ -85,6 +85,13 @@ public class StickyHeaderLayoutManager extends RecyclerView.LayoutManager {
 	}
 
 	@Override
+	public void onLayoutCompleted(RecyclerView.State state) {
+		View view = findViewByPosition(currentStickyHeaderPosition);
+		detachView(view);
+		attachView(view);
+	}
+
+	@Override
 	public int scrollVerticallyBy(int dy, RecyclerView.Recycler recycler, RecyclerView.State state) {
 		int direction = dy > 0 ? DIRECTION_UP : DIRECTION_DOWN;
 
