@@ -25,8 +25,8 @@ public class MainActivity extends AppCompatActivity {
 		List<GroupItem> data = new ArrayList<>();
 		for (int i = 0; i < 100; i++) {
 			List<ChildItem> items = new ArrayList<>();
-			for (int j = 0; j < 5; j++) {
-				ChildItem childItem = new ChildItem("Child " + j + "of Group " + i);
+			for (int j = 0; j < 7; j++) {
+				ChildItem childItem = new ChildItem("Child " + j + " of Group " + i);
 				items.add(childItem);
 			}
 			GroupItem groupItem = new GroupItem("Group " + i, items);

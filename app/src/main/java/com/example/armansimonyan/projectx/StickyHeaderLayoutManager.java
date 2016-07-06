@@ -4,6 +4,8 @@ import android.graphics.Color;
 import android.support.v7.widget.RecyclerView;
 import android.util.Log;
 import android.view.View;
+import android.view.ViewGroup;
+import android.widget.TextView;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -256,13 +258,25 @@ public class StickyHeaderLayoutManager extends RecyclerView.LayoutManager {
 	}
 
 	private void fill(RecyclerView.Recycler recycler, RecyclerView.State state, int direction) {
+		log("fill: start");
+
 		detachAndScrapAttachedViews(recycler);
+
+		for (int i = 0; i < getChildCount(); i++) {
+			View view = getChildAt(i);
+			log("child at: " + i + ", layoutPosition: " + ((RecyclerView.LayoutParams) view.getLayoutParams()).getViewLayoutPosition() + ", adapterPosition: " + ((RecyclerView.LayoutParams) view.getLayoutParams()).getViewAdapterPosition());
+		}
+
+		for (int i = currentStickyHeaderPosition + 1; i < firstVisiblePosition; i++) {
+			recycler.recycleView(recycler.getViewForPosition(i));
+		}
 
 		if (direction == DIRECTION_UP) {
 			int bottom = lastItemBottomOffset;
 			int nextPosition = lastVisiblePosition;
 			while (true) {
 				View view = recycler.getViewForPosition(nextPosition);
+				log("View: position: " + nextPosition + ", text: " + ((TextView) ((ViewGroup) view).getChildAt(0)).getText());
 				if (getItemViewType(view) == MainActivity.Adapter.GROUP_TYPE) {
 					view.setBackgroundColor(Color.GREEN);
 				} else {
@@ -312,6 +326,7 @@ public class StickyHeaderLayoutManager extends RecyclerView.LayoutManager {
 			view = recycler.getViewForPosition(currentStickyHeaderPosition);
 			addView(view);
 		}
+		log("Sticky Header View: position: " + currentStickyHeaderPosition + ", text: " + ((TextView) ((ViewGroup) view).getChildAt(0)).getText());
 		view.setBackgroundColor(Color.RED);
 		measureChildWithMargins(view, 0, 0);
 		layoutDecoratedWithMargins(view, 0, currentStickyHeaderTopOffset, view.getMeasuredWidth(), currentStickyHeaderTopOffset + view.getMeasuredHeight());
