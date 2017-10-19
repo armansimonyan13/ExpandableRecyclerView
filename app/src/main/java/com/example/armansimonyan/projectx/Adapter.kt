@@ -13,11 +13,13 @@ import android.widget.TextView
  * Created by armansimonyan.
  */
 
-open class Adapter(context: Context, val data: List<GroupItem>) : RecyclerView.Adapter<RecyclerView.ViewHolder>(), View.OnClickListener {
+class Adapter(context: Context, val data: List<GroupItem>) : RecyclerView.Adapter<RecyclerView.ViewHolder>(), View.OnClickListener {
 
 	companion object {
-		val GROUP_TYPE = 0
-		val CHILD_TYPE = 1
+		@JvmField
+		val GROUP_TYPE: Int = 0
+		@JvmField
+		val CHILD_TYPE: Int = 1
 	}
 
 	private var inflater: LayoutInflater = LayoutInflater.from(context)
@@ -86,7 +88,25 @@ open class Adapter(context: Context, val data: List<GroupItem>) : RecyclerView.A
 			}
 
 	override fun onClick(v: View?) {
-
+		if (v == null) return
+		val holder: Any = v.tag
+		if (holder is GroupViewHolder) {
+			log("adapterPosition: ${holder.adapterPosition}")
+			log("layoutPosition: ${holder.layoutPosition}")
+			val adapterPosition = holder.adapterPosition
+			val item: Any = getItem(adapterPosition)
+			if (item is GroupItem) {
+				if (item.isExpanded) {
+					item.setIsExpanded(false)
+					holder.imageView.rotation = 0F
+					notifyItemRangeRemoved(adapterPosition + 1, item.items.size)
+				} else {
+					item.setIsExpanded(true)
+					holder.imageView.rotation = 90F
+					notifyItemRangeInserted(adapterPosition + 1, item.items.size)
+				}
+			}
+		}
 	}
 
 	class GroupViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {

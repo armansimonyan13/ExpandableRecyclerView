@@ -73,7 +73,7 @@ public class StickyHeaderLayoutManager extends RecyclerView.LayoutManager {
 			if (nextView == null) {
 				nextView = recycler.getViewForPosition(tempNextStickyHeaderPosition);
 			}
-			if (getItemViewType(nextView) == MainActivity.Adapter.GROUP_TYPE) {
+			if (getItemViewType(nextView) == Adapter.GROUP_TYPE) {
 				nextStickyHeaderPosition = tempNextStickyHeaderPosition;
 				break;
 			}
@@ -190,7 +190,7 @@ public class StickyHeaderLayoutManager extends RecyclerView.LayoutManager {
 					measureChildWithMargins(nextView, 0, 0);
 					bottom += nextView.getMeasuredHeight();
 					removeAndRecycleView(nextView, recycler);
-					if (getItemViewType(nextView) == MainActivity.Adapter.GROUP_TYPE) {
+					if (getItemViewType(nextView) == Adapter.GROUP_TYPE) {
 						nextStickyHeaderPosition = i;
 						nextStickyHeaderTopOffset = bottom;
 						break;
@@ -202,7 +202,7 @@ public class StickyHeaderLayoutManager extends RecyclerView.LayoutManager {
 				loop:
 				for (int i = currentStickyHeaderPosition - 1; i >= 0; i--) {
 					View previousView = recycler.getViewForPosition(i);
-					if (getItemViewType(previousView) == MainActivity.Adapter.GROUP_TYPE) {
+					if (getItemViewType(previousView) == Adapter.GROUP_TYPE) {
 						nextStickyHeaderPosition = currentStickyHeaderPosition;
 						currentStickyHeaderPosition = i;
 						int bottom = firstItemTopOffset;
@@ -277,7 +277,7 @@ public class StickyHeaderLayoutManager extends RecyclerView.LayoutManager {
 			while (true) {
 				View view = recycler.getViewForPosition(nextPosition);
 				log("View: position: " + nextPosition + ", text: " + ((TextView) ((ViewGroup) view).getChildAt(0)).getText());
-				if (getItemViewType(view) == MainActivity.Adapter.GROUP_TYPE) {
+				if (getItemViewType(view) == Adapter.GROUP_TYPE) {
 					view.setBackgroundColor(Color.GREEN);
 				} else {
 					view.setBackgroundColor(Color.YELLOW);
@@ -299,7 +299,7 @@ public class StickyHeaderLayoutManager extends RecyclerView.LayoutManager {
 			int nextPosition = firstVisiblePosition;
 			while (true) {
 				View view = recycler.getViewForPosition(nextPosition);
-				if (getItemViewType(view) == MainActivity.Adapter.GROUP_TYPE) {
+				if (getItemViewType(view) == Adapter.GROUP_TYPE) {
 					view.setBackgroundColor(Color.GREEN);
 				} else {
 					view.setBackgroundColor(Color.YELLOW);
