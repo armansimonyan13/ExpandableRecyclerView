@@ -97,11 +97,11 @@ class Adapter(context: Context, val data: List<GroupItem>) : RecyclerView.Adapte
 			val item: Any = getItem(adapterPosition)
 			if (item is GroupItem) {
 				if (item.isExpanded) {
-					item.setIsExpanded(false)
+					item.isExpanded = false
 					holder.imageView.rotation = 0F
 					notifyItemRangeRemoved(adapterPosition + 1, item.items.size)
 				} else {
-					item.setIsExpanded(true)
+					item.isExpanded = true
 					holder.imageView.rotation = 90F
 					notifyItemRangeInserted(adapterPosition + 1, item.items.size)
 				}
