@@ -42,47 +42,82 @@ class LayoutManager : RecyclerView.LayoutManager() {
 	}
 
 	override fun onLayoutChildren(recycler: RecyclerView.Recycler?, state: RecyclerView.State?) {
-		if (childCount == 0) {
-			firstVisiblePosition = 0
-			firstItemTopOffset = 0
+		if (recycler == null || state == null) {
+			return
 		}
+		_onLayoutChildren(recycler, state)
+	}
 
-		var extraSpace = 0
-		if (state!!.isPreLayout) {
-			for (i in 0 until childCount) {
-				val view = getChildAt(i)
-				val layoutParams = view.layoutParams as RecyclerView.LayoutParams
-				if (layoutParams.isItemRemoved) {
-					extraSpace += view.measuredHeight
-				}
-			}
+	private fun _onLayoutChildren(recycler: RecyclerView.Recycler, state: RecyclerView.State) {
+		if (state.isPreLayout) {
+			handleFirstPass(recycler, state)
+		} else {
+			handleSecondPass(recycler, state)
 		}
+	}
 
-		nextStickyHeaderPosition = -1
-		var tempNextStickyHeaderPosition = currentStickyHeaderPosition + 1
-		while (true) {
-			var nextView: View? = findViewByPosition(tempNextStickyHeaderPosition)
-			if (nextView == null) {
-				nextView = recycler!!.getViewForPosition(tempNextStickyHeaderPosition)
-			}
-			if (getItemViewType(nextView) == Adapter.GROUP_TYPE) {
-				nextStickyHeaderPosition = tempNextStickyHeaderPosition
-				break
-			}
-			tempNextStickyHeaderPosition++
-		}
+	private fun handleFirstPass(recycler: RecyclerView.Recycler, state: RecyclerView.State) {
+		nextStickyHeaderPosition = calculateNextStickyHeaderPosition(recycler, this, currentStickyHeaderPosition)
 
 		if (currentStickyHeaderPosition == nextStickyHeaderPosition - 1 && currentStickyHeaderTopOffset == 0) {
 			firstVisiblePosition = currentStickyHeaderPosition
 			firstItemTopOffset = 0
 		}
 
+		var extraSpace = 0
+		for (i in 0 until childCount) {
+			val view = getChildAt(i)
+			val layoutParams = view.layoutParams as RecyclerView.LayoutParams
+			if (layoutParams.isItemRemoved) {
+				extraSpace += view.measuredHeight
+			}
+		}
+		calculateLastVisiblePositionAndLastItemBottomOffset(recycler, extraSpace)
+
+		log()
+		fill(recycler, state, DIRECTION_UP)
+	}
+
+	private fun handleSecondPass(recycler: RecyclerView.Recycler, state: RecyclerView.State) {
+		nextStickyHeaderPosition = calculateNextStickyHeaderPosition(recycler, this, currentStickyHeaderPosition)
+
+		if (currentStickyHeaderPosition == nextStickyHeaderPosition - 1 && currentStickyHeaderTopOffset == 0) {
+			firstVisiblePosition = currentStickyHeaderPosition
+			firstItemTopOffset = 0
+		}
+
+		var extraSpace = 0
+		calculateLastVisiblePositionAndLastItemBottomOffset(recycler, extraSpace)
+
+		log()
+		fill(recycler, state, DIRECTION_UP)
+
+		val scrapList = recycler.scrapList
+		val disappearingViews = ArrayList<View>()
+		for (viewHolder in scrapList) {
+			val layoutParams = viewHolder.itemView.layoutParams as RecyclerView.LayoutParams
+			if (!layoutParams.isItemRemoved) {
+				disappearingViews.add(viewHolder.itemView)
+			}
+		}
+
+		var topOffset = lastItemBottomOffset
+		for (view in disappearingViews) {
+			addDisappearingView(view)
+
+			measureChildWithMargins(view, 0, 0)
+			layoutDecoratedWithMargins(view, 0, topOffset, view.measuredWidth, topOffset + view.measuredHeight)
+			topOffset += view.measuredHeight
+		}
+	}
+
+	private fun calculateLastVisiblePositionAndLastItemBottomOffset(recycler: RecyclerView.Recycler, extraSpace: Int) {
 		lastVisiblePosition = firstVisiblePosition
 		lastItemBottomOffset = firstItemTopOffset
 		while (true) {
 			var lastVisibleView: View? = findViewByPosition(lastVisiblePosition)
 			if (lastVisibleView == null) {
-				lastVisibleView = recycler!!.getViewForPosition(lastVisiblePosition)
+				lastVisibleView = recycler.getViewForPosition(lastVisiblePosition)
 			}
 			if (lastVisiblePosition == nextStickyHeaderPosition) {
 				nextStickyHeaderTopOffset = lastItemBottomOffset
@@ -95,29 +130,6 @@ class LayoutManager : RecyclerView.LayoutManager() {
 			}
 			lastVisiblePosition++
 		}
-
-		log()
-		fill(recycler, state, DIRECTION_UP)
-
-		if (!state.isPreLayout) {
-			val scrapList = recycler!!.scrapList
-			val disappearingViews = ArrayList<View>()
-			for (viewHolder in scrapList) {
-				val layoutParams = viewHolder.itemView.layoutParams as RecyclerView.LayoutParams
-				if (!layoutParams.isItemRemoved) {
-					disappearingViews.add(viewHolder.itemView)
-				}
-			}
-
-			var topOffset = lastItemBottomOffset
-			for (view in disappearingViews) {
-				addDisappearingView(view)
-
-				measureChildWithMargins(view, 0, 0)
-				layoutDecoratedWithMargins(view, 0, topOffset, view.measuredWidth, topOffset + view.measuredHeight)
-				topOffset += view.measuredHeight
-			}
-		}
 	}
 
 	override fun onLayoutCompleted(state: RecyclerView.State?) {
@@ -127,6 +139,13 @@ class LayoutManager : RecyclerView.LayoutManager() {
 	}
 
 	override fun scrollVerticallyBy(dy: Int, recycler: RecyclerView.Recycler?, state: RecyclerView.State?): Int {
+		if (recycler == null || state == null) {
+			return 0
+		}
+		return _scrollVerticallyBy(dy, recycler, state)
+	}
+
+	private fun _scrollVerticallyBy(dy: Int, recycler: RecyclerView.Recycler, state: RecyclerView.State) : Int {
 		val direction = if (dy > 0) DIRECTION_UP else DIRECTION_DOWN
 
 		var scroll = dy
@@ -140,7 +159,7 @@ class LayoutManager : RecyclerView.LayoutManager() {
 					break
 				} else {
 					lastVisiblePosition++
-					val view = recycler!!.getViewForPosition(lastVisiblePosition)
+					val view = recycler.getViewForPosition(lastVisiblePosition)
 					measureChildWithMargins(view, 0, 0)
 					lastItemBottomOffset += view.measuredHeight
 				}
@@ -155,7 +174,7 @@ class LayoutManager : RecyclerView.LayoutManager() {
 					break
 				} else {
 					firstVisiblePosition--
-					val view = recycler!!.getViewForPosition(firstVisiblePosition)
+					val view = recycler.getViewForPosition(firstVisiblePosition)
 					measureChildWithMargins(view, 0, 0)
 					firstItemTopOffset -= view.measuredHeight
 				}
@@ -164,7 +183,7 @@ class LayoutManager : RecyclerView.LayoutManager() {
 
 		if (direction == DIRECTION_UP) {
 			nextStickyHeaderTopOffset -= scroll
-			val view = recycler!!.getViewForPosition(currentStickyHeaderPosition)
+			val view = recycler.getViewForPosition(currentStickyHeaderPosition)
 			addView(view)
 			measureChildWithMargins(view, 0, 0)
 			removeAndRecycleView(view, recycler)
@@ -192,7 +211,7 @@ class LayoutManager : RecyclerView.LayoutManager() {
 		} else {
 			if (currentStickyHeaderPosition > firstVisiblePosition) {
 				loop@ for (i in currentStickyHeaderPosition - 1 downTo 0) {
-					val previousView = recycler!!.getViewForPosition(i)
+					val previousView = recycler.getViewForPosition(i)
 					if (getItemViewType(previousView) == Adapter.GROUP_TYPE) {
 						nextStickyHeaderPosition = currentStickyHeaderPosition
 						currentStickyHeaderPosition = i
@@ -220,7 +239,7 @@ class LayoutManager : RecyclerView.LayoutManager() {
 				var limit = 0
 				if (firstVisiblePosition == 0 && firstItemTopOffset == 0) {
 					for (i in 0 until itemCount) {
-						val view = recycler!!.getViewForPosition(i)
+						val view = recycler.getViewForPosition(i)
 						addView(view)
 						measureChildWithMargins(view, 0, 0)
 						limit += view.measuredHeight
@@ -231,7 +250,7 @@ class LayoutManager : RecyclerView.LayoutManager() {
 						}
 					}
 				}
-				val view = recycler!!.getViewForPosition(currentStickyHeaderPosition)
+				val view = recycler.getViewForPosition(currentStickyHeaderPosition)
 				addView(view)
 				measureChildWithMargins(view, 0, 0)
 				if (nextStickyHeaderTopOffset > view.measuredHeight) {
@@ -248,25 +267,22 @@ class LayoutManager : RecyclerView.LayoutManager() {
 		return scroll
 	}
 
-	private fun fill(recycler: RecyclerView.Recycler?, state: RecyclerView.State?, direction: Int) {
+	private fun fill(recycler: RecyclerView.Recycler, state: RecyclerView.State, direction: Int) {
 		log("fill: start")
 
 		detachAndScrapAttachedViews(recycler)
 
-		for (i in 0 until childCount) {
-			val view = getChildAt(i)
-			log("child at: " + i + ", layoutPosition: " + (view.layoutParams as RecyclerView.LayoutParams).viewLayoutPosition + ", adapterPosition: " + (view.layoutParams as RecyclerView.LayoutParams).viewAdapterPosition)
-		}
+		logAllChildren()
 
 		for (i in currentStickyHeaderPosition + 1 until firstVisiblePosition) {
-			recycler!!.recycleView(recycler.getViewForPosition(i))
+			recycler.recycleView(recycler.getViewForPosition(i))
 		}
 
 		if (direction == DIRECTION_UP) {
 			var bottom = lastItemBottomOffset
 			var nextPosition = lastVisiblePosition
 			while (true) {
-				val view = recycler!!.getViewForPosition(nextPosition)
+				val view = recycler.getViewForPosition(nextPosition)
 				log("View: position: " + nextPosition + ", text: " + ((view as ViewGroup).getChildAt(0) as TextView).text)
 				if (getItemViewType(view) == Adapter.GROUP_TYPE) {
 					view.setBackgroundColor(Color.GREEN)
@@ -289,7 +305,7 @@ class LayoutManager : RecyclerView.LayoutManager() {
 			var top = firstItemTopOffset
 			var nextPosition = firstVisiblePosition
 			while (true) {
-				val view = recycler!!.getViewForPosition(nextPosition)
+				val view = recycler.getViewForPosition(nextPosition)
 				if (getItemViewType(view) == Adapter.GROUP_TYPE) {
 					view.setBackgroundColor(Color.GREEN)
 				} else {
@@ -327,6 +343,13 @@ class LayoutManager : RecyclerView.LayoutManager() {
 		log("scrapList: " + recycler.scrapList)
 	}
 
+	private fun logAllChildren() {
+		for (i in 0 until childCount) {
+			val view = getChildAt(i)
+			log("child at: " + i + ", layoutPosition: " + (view.layoutParams as RecyclerView.LayoutParams).viewLayoutPosition + ", adapterPosition: " + (view.layoutParams as RecyclerView.LayoutParams).viewAdapterPosition)
+		}
+	}
+
 	private fun log(message: String = "State>>>\n" +
 			"firstVisiblePosition: " + firstVisiblePosition + "\n" +
 			"firstItemTopOffset: " + firstItemTopOffset + "\n" +
@@ -343,4 +366,21 @@ class LayoutManager : RecyclerView.LayoutManager() {
 		private val DIRECTION_UP = 1
 		private val DIRECTION_DOWN = -1
 	}
+}
+
+fun calculateNextStickyHeaderPosition(recycler: RecyclerView.Recycler, layoutManager: LayoutManager, currentStickyHeaderPosition: Int) : Int {
+	var nextStickyHeaderPosition = -1
+	var tempNextStickyHeaderPosition = currentStickyHeaderPosition + 1
+	while (true) {
+		var nextView: View? = layoutManager.findViewByPosition(tempNextStickyHeaderPosition)
+		if (nextView == null) {
+			nextView = recycler.getViewForPosition(tempNextStickyHeaderPosition)
+		}
+		if (layoutManager.getItemViewType(nextView) == Adapter.GROUP_TYPE) {
+			nextStickyHeaderPosition = tempNextStickyHeaderPosition
+			break
+		}
+		tempNextStickyHeaderPosition++
+	}
+	return nextStickyHeaderPosition
 }
