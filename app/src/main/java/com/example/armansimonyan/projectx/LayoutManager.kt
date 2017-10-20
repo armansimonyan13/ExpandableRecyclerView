@@ -4,8 +4,6 @@ import android.graphics.Color
 import android.support.v7.widget.RecyclerView
 import android.util.Log
 import android.view.View
-import android.view.ViewGroup
-import android.widget.TextView
 
 import java.util.ArrayList
 
@@ -72,37 +70,32 @@ class LayoutManager : RecyclerView.LayoutManager() {
 	private fun handleFirstPass(recycler: RecyclerView.Recycler, state: RecyclerView.State) {
 		nextStickyHeaderPosition = calculateNextStickyHeaderPosition(recycler, this, currentStickyHeaderPosition)
 
-		if (currentStickyHeaderPosition == nextStickyHeaderPosition - 1 && currentStickyHeaderTopOffset == 0) {
-			firstVisiblePosition = currentStickyHeaderPosition
-			firstItemTopOffset = 0
-		}
+		calculateFirstVisiblePositionAndFirstItemTopOffset()
 
 		var extraSpace = 0
 		for (i in 0 until childCount) {
 			val view = getChildAt(i)
 			val layoutParams = view.layoutParams as RecyclerView.LayoutParams
 			if (layoutParams.isItemRemoved) {
+				log("isItemRemoved -> viewAdapterPosition: ${layoutParams.viewAdapterPosition}, viewLayoutPosition: ${layoutParams.viewLayoutPosition}")
 				extraSpace += view.measuredHeight
 			}
 		}
+
 		calculateLastVisiblePositionAndLastItemBottomOffset(recycler, extraSpace)
 
-		log()
 		fill(recycler, state, DIRECTION_UP)
 	}
 
 	private fun handleSecondPass(recycler: RecyclerView.Recycler, state: RecyclerView.State) {
 		nextStickyHeaderPosition = calculateNextStickyHeaderPosition(recycler, this, currentStickyHeaderPosition)
 
-		if (currentStickyHeaderPosition == nextStickyHeaderPosition - 1 && currentStickyHeaderTopOffset == 0) {
-			firstVisiblePosition = currentStickyHeaderPosition
-			firstItemTopOffset = 0
-		}
+		calculateFirstVisiblePositionAndFirstItemTopOffset()
 
 		var extraSpace = 0
+
 		calculateLastVisiblePositionAndLastItemBottomOffset(recycler, extraSpace)
 
-		log()
 		fill(recycler, state, DIRECTION_UP)
 
 		val scrapList = recycler.scrapList
@@ -121,6 +114,13 @@ class LayoutManager : RecyclerView.LayoutManager() {
 			measureChildWithMargins(view, 0, 0)
 			layoutDecoratedWithMargins(view, 0, topOffset, view.measuredWidth, topOffset + view.measuredHeight)
 			topOffset += view.measuredHeight
+		}
+	}
+
+	private fun calculateFirstVisiblePositionAndFirstItemTopOffset() {
+		if (currentStickyHeaderPosition == nextStickyHeaderPosition - 1 && currentStickyHeaderTopOffset == 0) {
+			firstVisiblePosition = currentStickyHeaderPosition
+			firstItemTopOffset = 0
 		}
 	}
 
@@ -263,13 +263,11 @@ class LayoutManager : RecyclerView.LayoutManager() {
 		}
 
 		fill(recycler, state, direction)
-		log()
+
 		return scroll
 	}
 
 	private fun fill(recycler: RecyclerView.Recycler, state: RecyclerView.State, direction: Int) {
-		log("fill: start")
-
 		detachAndScrapAttachedViews(recycler)
 
 		logAllChildren()
@@ -283,23 +281,24 @@ class LayoutManager : RecyclerView.LayoutManager() {
 			var nextPosition = lastVisiblePosition
 			while (true) {
 				val view = recycler.getViewForPosition(nextPosition)
-				log("View: position: " + nextPosition + ", text: " + ((view as ViewGroup).getChildAt(0) as TextView).text)
+
 				if (getItemViewType(view) == Adapter.GROUP_TYPE) {
 					view.setBackgroundColor(Color.GREEN)
 				} else {
 					view.setBackgroundColor(Color.YELLOW)
 				}
+
 				addView(view)
 				measureChildWithMargins(view, 0, 0)
-				val top = bottom - view.getMeasuredHeight()
-				layoutDecoratedWithMargins(view, 0, top, view.getMeasuredWidth(), bottom)
+				val top = bottom - view.measuredHeight
+				layoutDecoratedWithMargins(view, 0, top, view.measuredWidth, bottom)
 				if (top <= 0) {
 					firstVisiblePosition = nextPosition
 					firstItemTopOffset = top
 					break
 				}
 				bottom = top
-				nextPosition--
+				nextPosition += direction
 			}
 		} else {
 			var top = firstItemTopOffset
@@ -321,11 +320,11 @@ class LayoutManager : RecyclerView.LayoutManager() {
 					break
 				}
 				top = bottom
-				nextPosition++
+				nextPosition += direction
 			}
 		}
 
-		var view: View? = findViewByPosition(currentStickyHeaderPosition)
+		var view = findViewByPosition(currentStickyHeaderPosition)
 		if (view != null) {
 			detachView(view)
 			attachView(view)
@@ -333,14 +332,9 @@ class LayoutManager : RecyclerView.LayoutManager() {
 			view = recycler.getViewForPosition(currentStickyHeaderPosition)
 			addView(view)
 		}
-		log("Sticky Header View: position: " + currentStickyHeaderPosition + ", text: " + ((view as ViewGroup).getChildAt(0) as TextView).text)
 		view.setBackgroundColor(Color.RED)
 		measureChildWithMargins(view, 0, 0)
 		layoutDecoratedWithMargins(view, 0, currentStickyHeaderTopOffset, view.measuredWidth, currentStickyHeaderTopOffset + view.measuredHeight)
-
-		log("getChildCount(): " + childCount)
-		log("scrapListSize: " + recycler.scrapList.size)
-		log("scrapList: " + recycler.scrapList)
 	}
 
 	private fun logAllChildren() {
@@ -359,12 +353,12 @@ class LayoutManager : RecyclerView.LayoutManager() {
 			"currentStickyHeaderTopOffset: " + currentStickyHeaderTopOffset + "\n" +
 			"nextStickyHeaderPosition: " + nextStickyHeaderPosition + "\n" +
 			"nextStickyHeaderTopOffset: " + nextStickyHeaderTopOffset + "\n") {
-		Log.d(LayoutManager::class.java.simpleName + ">>>", message)
+		Logger.log(message)
 	}
 
 	companion object {
-		private val DIRECTION_UP = 1
-		private val DIRECTION_DOWN = -1
+		private val DIRECTION_UP = -1
+		private val DIRECTION_DOWN = 1
 	}
 }
 
