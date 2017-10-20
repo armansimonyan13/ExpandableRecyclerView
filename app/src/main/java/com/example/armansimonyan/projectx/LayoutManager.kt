@@ -48,6 +48,19 @@ class LayoutManager : RecyclerView.LayoutManager() {
 		_onLayoutChildren(recycler, state)
 	}
 
+	override fun onLayoutCompleted(state: RecyclerView.State?) {
+		val view = findViewByPosition(currentStickyHeaderPosition)
+		detachView(view)
+		attachView(view)
+	}
+
+	override fun scrollVerticallyBy(dy: Int, recycler: RecyclerView.Recycler?, state: RecyclerView.State?): Int {
+		if (recycler == null || state == null) {
+			return 0
+		}
+		return _scrollVerticallyBy(dy, recycler, state)
+	}
+
 	private fun _onLayoutChildren(recycler: RecyclerView.Recycler, state: RecyclerView.State) {
 		if (state.isPreLayout) {
 			handleFirstPass(recycler, state)
@@ -130,19 +143,6 @@ class LayoutManager : RecyclerView.LayoutManager() {
 			}
 			lastVisiblePosition++
 		}
-	}
-
-	override fun onLayoutCompleted(state: RecyclerView.State?) {
-		val view = findViewByPosition(currentStickyHeaderPosition)
-		detachView(view)
-		attachView(view)
-	}
-
-	override fun scrollVerticallyBy(dy: Int, recycler: RecyclerView.Recycler?, state: RecyclerView.State?): Int {
-		if (recycler == null || state == null) {
-			return 0
-		}
-		return _scrollVerticallyBy(dy, recycler, state)
 	}
 
 	private fun _scrollVerticallyBy(dy: Int, recycler: RecyclerView.Recycler, state: RecyclerView.State) : Int {
