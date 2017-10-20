@@ -16,9 +16,7 @@ import android.widget.TextView
 class Adapter(context: Context, val data: List<GroupItem>) : RecyclerView.Adapter<RecyclerView.ViewHolder>(), View.OnClickListener {
 
 	companion object {
-		@JvmField
 		val GROUP_TYPE: Int = 0
-		@JvmField
 		val CHILD_TYPE: Int = 1
 	}
 
