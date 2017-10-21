@@ -120,4 +120,15 @@ class Adapter(context: Context, val data: List<GroupItem>) : RecyclerView.Adapte
 	fun log(message: String, vararg args: Any) {
 		Log.d("Adapter", String.format(message, args))
 	}
+
+	fun toggle() {
+		val item = getItem(0) as GroupItem
+		if (item.isExpanded) {
+			item.isExpanded = false
+			notifyItemRangeRemoved(1, item.items.size)
+		} else {
+			item.isExpanded = true
+			notifyItemRangeInserted(1, item.items.size)
+		}
+	}
 }

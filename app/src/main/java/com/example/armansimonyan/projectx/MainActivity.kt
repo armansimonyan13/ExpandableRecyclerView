@@ -4,10 +4,13 @@ import android.support.v7.app.AppCompatActivity
 import android.os.Bundle
 import android.support.v7.widget.DefaultItemAnimator
 import android.support.v7.widget.RecyclerView
+import android.view.Menu
+import android.view.MenuItem
 
 import java.util.ArrayList
 
 class MainActivity : AppCompatActivity() {
+	lateinit var adapter: Adapter
 
 	override fun onCreate(savedInstanceState: Bundle?) {
 		super.onCreate(savedInstanceState)
@@ -32,7 +35,17 @@ class MainActivity : AppCompatActivity() {
 		itemAnimator.addDuration = 1000
 		itemAnimator.moveDuration = 1000
 		recyclerView.itemAnimator = itemAnimator
-		recyclerView.adapter = Adapter(this, data)
+		adapter = Adapter(this, data)
+		recyclerView.adapter = adapter
 	}
 
+	override fun onCreateOptionsMenu(menu: Menu?): Boolean {
+		menuInflater.inflate(R.menu.menu, menu)
+		return true
+	}
+
+	override fun onOptionsItemSelected(item: MenuItem?): Boolean {
+		adapter.toggle()
+		return true
+	}
 }
