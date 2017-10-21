@@ -10,26 +10,22 @@ import android.view.MenuItem
 import java.util.ArrayList
 
 class MainActivity : AppCompatActivity() {
-	lateinit var adapter: Adapter
+	private lateinit var adapter: Adapter
 
 	override fun onCreate(savedInstanceState: Bundle?) {
 		super.onCreate(savedInstanceState)
 		setContentView(R.layout.activity_main)
 
 		val data = ArrayList<GroupItem>()
-		for (i in 0..99) {
-			val items = ArrayList<ChildItem>()
-			for (j in 0..6) {
-				val childItem = ChildItem("Child $j of Group $i")
-				items.add(childItem)
-			}
-			val groupItem = GroupItem("Group " + i, items)
+		(0..9).map {
+			val items = (0..6).map { ChildItem("Child $it of Group $it") }
+			val groupItem = GroupItem("Group $it", items)
 			groupItem.isExpanded = true
 			data.add(groupItem)
 		}
 
 		val recyclerView = findViewById<RecyclerView>(R.id.recycler)
-		recyclerView.layoutManager = LayoutManager()
+		recyclerView.layoutManager = ExtendedLayoutManager()
 		val itemAnimator = DefaultItemAnimator()
 		itemAnimator.removeDuration = 1000
 		itemAnimator.addDuration = 1000
