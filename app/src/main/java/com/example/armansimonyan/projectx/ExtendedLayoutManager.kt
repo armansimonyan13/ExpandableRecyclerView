@@ -84,11 +84,13 @@ class ExtendedLayoutManager : RecyclerView.LayoutManager() {
 			layoutView(view, offset)
 
 			position++
-			offset += view.measuredHeight
+			offset += getDecoratedMeasuredHeight(view)
 		}
 
-		layoutState.bottomPosition = position - 1
-		layoutState.bottomOffset = offset
+		if (!state.isPreLayout) {
+			layoutState.bottomPosition = position - 1
+			layoutState.bottomOffset = offset
+		}
 
 		if (state.isPreLayout) {
 			position = layoutAppearingViews(offset, extraSpace, recycler, position)
@@ -126,17 +128,17 @@ class ExtendedLayoutManager : RecyclerView.LayoutManager() {
 	}
 
 	private fun layoutAppearingViews(offset: Int, extraSpace: Int, recycler: RecyclerView.Recycler, position: Int): Int {
-		var offset1 = offset
-		var position1 = position
-		while (offset1 < height + extraSpace) {
-			val view = recycler.getViewForPosition(position1)
+		var nextOffset = offset
+		var nextPosition = position
+		while (nextOffset < height + extraSpace) {
+			val view = recycler.getViewForPosition(nextPosition)
 			addView(view)
-			layoutView(view, offset1)
+			layoutView(view, nextOffset)
 
-			position1++
-			offset1 += view.measuredHeight
+			nextPosition++
+			nextOffset += view.measuredHeight
 		}
-		return position1
+		return nextPosition
 	}
 
 	override fun canScrollVertically(): Boolean {
@@ -144,6 +146,11 @@ class ExtendedLayoutManager : RecyclerView.LayoutManager() {
 	}
 
 	override fun scrollVerticallyBy(dy: Int, recycler: RecyclerView.Recycler, state: RecyclerView.State): Int {
+		var childList = mutableListOf<View>()
+		(0 until childCount).map {
+			childList.add(getChildAt(it))
+		}
+
 		detachAndScrapAttachedViews(recycler)
 
 		val direction = if (dy > 0) UP else DOWN
@@ -256,11 +263,16 @@ class ExtendedLayoutManager : RecyclerView.LayoutManager() {
 		var offset = layoutState.topOffset
 		while (offset < height && position < itemCount) {
 			val view = recycler.getViewForPosition(position)
+			childList.remove(view)
 			addView(view)
 			layoutView(view, offset)
 
 			position++
 			offset += getDecoratedMeasuredHeight(view)
+		}
+
+		childList.map {
+			removeAndRecycleView(it, recycler)
 		}
 
 		log("topPosition: ${layoutState.topPosition}")
@@ -273,10 +285,10 @@ class ExtendedLayoutManager : RecyclerView.LayoutManager() {
 
 	private fun layoutView(view: View, offset: Int) {
 		measureChildWithMargins(view, 0, 0)
-		layoutDecoratedWithMargins(view, 0, offset, view.measuredWidth, offset + view.measuredHeight)
+		layoutDecoratedWithMargins(view, 0, offset, getDecoratedMeasuredWidth(view), offset + getDecoratedMeasuredHeight(view))
 	}
 
 	private fun log(message: String, vararg args: Any) {
-//		Logger.log(message, args)
+		Logger.log(message, args)
 	}
 }
