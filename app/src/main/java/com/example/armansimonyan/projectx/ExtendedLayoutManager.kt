@@ -3,6 +3,7 @@ package com.example.armansimonyan.projectx
 import android.content.Context
 import android.support.v7.widget.RecyclerView
 import android.util.AttributeSet
+import android.view.View
 import android.view.ViewGroup
 
 /**
@@ -60,8 +61,7 @@ class ExtendedLayoutManager : RecyclerView.LayoutManager() {
 		while (offset < height) {
 			val view = recycler.getViewForPosition(position)
 			addView(view)
-			measureChildWithMargins(view, 0, 0)
-			layoutDecoratedWithMargins(view, 0, offset, view.measuredWidth, offset + view.measuredHeight)
+			layoutView(view, offset)
 
 			position++
 			offset += view.measuredHeight
@@ -71,8 +71,7 @@ class ExtendedLayoutManager : RecyclerView.LayoutManager() {
 			while (offset < height + extraSpace) {
 				val view = recycler.getViewForPosition(position)
 				addView(view)
-				measureChildWithMargins(view, 0, 0)
-				layoutDecoratedWithMargins(view, 0, offset, view.measuredWidth, offset + view.measuredHeight)
+				layoutView(view, offset)
 
 				position++
 				offset += view.measuredHeight
@@ -85,14 +84,18 @@ class ExtendedLayoutManager : RecyclerView.LayoutManager() {
 					.map {
 						val view = it.itemView
 						addDisappearingView(view)
-						measureChildWithMargins(view, 0, 0)
-						layoutDecoratedWithMargins(view, 0, disappearingViewOffset, view.measuredWidth, disappearingViewOffset + view.measuredHeight)
+						layoutView(view, disappearingViewOffset)
 
 						disappearingViewOffset += view.measuredHeight
 					}
 		}
 
 		log("Drawn $position items")
+	}
+
+	private fun layoutView(view: View, offset: Int) {
+		measureChildWithMargins(view, 0, 0)
+		layoutDecoratedWithMargins(view, 0, offset, view.measuredWidth, offset + view.measuredHeight)
 	}
 
 	private fun log(message: String, vararg args: Any) {
