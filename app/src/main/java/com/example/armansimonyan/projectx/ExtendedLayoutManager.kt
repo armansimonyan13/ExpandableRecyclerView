@@ -11,7 +11,32 @@ import android.view.ViewGroup
  */
 class ExtendedLayoutManager : RecyclerView.LayoutManager() {
 
-	private var mOffset = 0
+	private val UP = -1
+	private val DOWN = 1
+
+	class LayoutState {
+		/**
+		 * Adapter position of top visible item view
+		 */
+		var topPosition = 0
+
+		/**
+		 * Adapter position of bottom visible item view
+		 */
+		var bottomPosition = 0
+
+		/**
+		 * Top offset of top visible item view
+		 */
+		var topOffset = 0
+
+		/**
+		 * Bottom offset of bottom visible item view
+		 */
+		var bottomOffset = 0
+	}
+
+	private var layoutState = LayoutState()
 
 	class LayoutParams : RecyclerView.LayoutParams {
 		constructor(width: Int, height: Int) : super(width, height)
@@ -48,10 +73,10 @@ class ExtendedLayoutManager : RecyclerView.LayoutManager() {
 	override fun onLayoutChildren(recycler: RecyclerView.Recycler, state: RecyclerView.State) {
 		detachAndScrapAttachedViews(recycler)
 
-		var extraSpace = calculateExtraSpace(state, recycler)
+		val extraSpace = calculateExtraSpace(state, recycler)
 
-		var position = 0;
-		var offset = mOffset
+		var position = layoutState.topPosition
+		var offset = layoutState.topOffset
 
 		while (offset < height) {
 			val view = recycler.getViewForPosition(position)
@@ -61,6 +86,9 @@ class ExtendedLayoutManager : RecyclerView.LayoutManager() {
 			position++
 			offset += view.measuredHeight
 		}
+
+		layoutState.bottomPosition = position - 1
+		layoutState.bottomOffset = offset
 
 		if (state.isPreLayout) {
 			position = layoutAppearingViews(offset, extraSpace, recycler, position)
@@ -116,21 +144,127 @@ class ExtendedLayoutManager : RecyclerView.LayoutManager() {
 	}
 
 	override fun scrollVerticallyBy(dy: Int, recycler: RecyclerView.Recycler, state: RecyclerView.State): Int {
-		mOffset -= dy
-
 		detachAndScrapAttachedViews(recycler)
 
-		var position = 0
-		var offset = mOffset
+		val distance = Math.abs(dy)
+		val direction = if (dy > 0) UP else DOWN
 
+		if (direction == UP) {
+			// Calculate layoutState.bottomOffset and layoutState.bottomPosition
+			var bottomOffset = layoutState.bottomOffset - distance
+			var bottomPosition = layoutState.bottomPosition
+			while (true) {
+				val view = recycler.getViewForPosition(bottomPosition)
+
+				measureChildWithMargins(view, 0, 0)
+
+				val decoratedMeasuredHeight = getDecoratedMeasuredHeight(view)
+				val top = bottomOffset - decoratedMeasuredHeight
+				val bottom = bottomOffset
+				if (top < height && bottom >= height) {
+					layoutState.bottomOffset = bottom
+					layoutState.bottomPosition = bottomPosition
+					break
+				} else {
+					bottomPosition++
+					if (bottomPosition >= itemCount) {
+						layoutState.bottomPosition = itemCount - 1
+						layoutState.bottomOffset = height
+						break
+					}
+					val nextView = recycler.getViewForPosition(bottomPosition)
+					measureChildWithMargins(nextView, 0, 0)
+					bottomOffset += getDecoratedMeasuredHeight(nextView)
+				}
+
+			}
+
+			// Calculate layoutState.topOffset and layoutState.topPosition
+			bottomOffset = layoutState.bottomOffset
+			bottomPosition = layoutState.bottomPosition
+			while (true) {
+				val view = recycler.getViewForPosition(bottomPosition)
+
+				measureChildWithMargins(view, 0, 0)
+
+				val decoratedMeasuredHeight = getDecoratedMeasuredHeight(view)
+				val top = bottomOffset - decoratedMeasuredHeight
+				val bottom = bottomOffset
+				if (top <= 0 && bottom > 0) {
+					layoutState.topOffset = top
+					layoutState.topPosition = bottomPosition
+					break
+				} else {
+					bottomOffset -= decoratedMeasuredHeight
+					bottomPosition--
+				}
+			}
+		} else {
+			// Calculate layoutState.topOffset and layoutState.topPosition
+			var topOffset = layoutState.topOffset + distance
+			var topPosition = layoutState.topPosition
+			while (true) {
+				val view = recycler.getViewForPosition(topPosition)
+
+				measureChildWithMargins(view, 0, 0)
+
+				val top = topOffset
+				val bottom = top + getDecoratedMeasuredHeight(view)
+				if (top <= 0 && bottom > 0) {
+					layoutState.topOffset = topOffset
+					layoutState.topPosition = topPosition
+					break
+				} else {
+					topPosition--
+					if (topPosition < 0) {
+						layoutState.topOffset = 0
+						layoutState.topPosition = 0
+						break
+					}
+					val previousView = recycler.getViewForPosition(topPosition)
+
+					measureChildWithMargins(previousView, 0 ,0)
+
+					topOffset -= getDecoratedMeasuredHeight(previousView)
+				}
+			}
+
+			// Calculate layoutState.bottomOffset and layoutState.bottomPosition
+			topOffset = layoutState.topOffset
+			topPosition = layoutState.topPosition
+			while (true) {
+				val view = recycler.getViewForPosition(topPosition)
+
+				measureChildWithMargins(view, 0, 0)
+
+				val top = topOffset
+				val bottom = top + getDecoratedMeasuredHeight(view)
+				if (top < height && bottom >= height) {
+					layoutState.bottomOffset = topOffset
+					layoutState.bottomPosition = topPosition
+					break
+				} else {
+					topPosition++
+					topOffset = bottom
+				}
+			}
+		}
+
+		var position = layoutState.topPosition
+		var offset = layoutState.topOffset
 		while (offset < height && position < itemCount) {
 			val view = recycler.getViewForPosition(position)
 			addView(view)
 			layoutView(view, offset)
 
 			position++
-			offset += view.measuredHeight
+			offset += getDecoratedMeasuredHeight(view)
 		}
+
+		log("topPosition: ${layoutState.topPosition}")
+		log("bottomPosition: ${layoutState.bottomPosition}")
+		log("topOffset: ${layoutState.topOffset}")
+		log("bottomOffset: ${layoutState.bottomOffset}")
 
 		return dy
 	}
@@ -141,6 +275,6 @@ class ExtendedLayoutManager : RecyclerView.LayoutManager() {
 	}
 
 	private fun log(message: String, vararg args: Any) {
-		Logger.log(message, args)
+//		Logger.log(message, args)
 	}
 }
