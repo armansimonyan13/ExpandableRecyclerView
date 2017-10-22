@@ -17,9 +17,9 @@ class MainActivity : AppCompatActivity() {
 		setContentView(R.layout.activity_main)
 
 		val data = ArrayList<GroupItem>()
-		(0..9).map {
-			val items = (0..6).map { ChildItem("Child $it of Group $it") }
-			val groupItem = GroupItem("Group $it", items)
+		(0..9).map { group ->
+			val items = (0..6).map { child -> ChildItem("Child $child of Group $group") }
+			val groupItem = GroupItem("Group $group", items)
 			groupItem.isExpanded = true
 			data.add(groupItem)
 		}
