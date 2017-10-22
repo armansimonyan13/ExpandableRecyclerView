@@ -11,8 +11,8 @@ import android.view.ViewGroup
  */
 class ExtendedLayoutManager : RecyclerView.LayoutManager() {
 
-	private val UP = -1
-	private val DOWN = 1
+	private val UP = 1
+	private val DOWN = -1
 
 	class LayoutState {
 		/**
@@ -146,8 +146,9 @@ class ExtendedLayoutManager : RecyclerView.LayoutManager() {
 	override fun scrollVerticallyBy(dy: Int, recycler: RecyclerView.Recycler, state: RecyclerView.State): Int {
 		detachAndScrapAttachedViews(recycler)
 
-		val distance = Math.abs(dy)
 		val direction = if (dy > 0) UP else DOWN
+
+		var distance = Math.abs(dy)
 
 		if (direction == UP) {
 			// Calculate layoutState.bottomOffset and layoutState.bottomPosition
@@ -168,6 +169,7 @@ class ExtendedLayoutManager : RecyclerView.LayoutManager() {
 				} else {
 					bottomPosition++
 					if (bottomPosition >= itemCount) {
+						distance = height - layoutState.bottomOffset
 						layoutState.bottomPosition = itemCount - 1
 						layoutState.bottomOffset = height
 						break
@@ -176,7 +178,6 @@ class ExtendedLayoutManager : RecyclerView.LayoutManager() {
 					measureChildWithMargins(nextView, 0, 0)
 					bottomOffset += getDecoratedMeasuredHeight(nextView)
 				}
-
 			}
 
 			// Calculate layoutState.topOffset and layoutState.topPosition
@@ -217,6 +218,7 @@ class ExtendedLayoutManager : RecyclerView.LayoutManager() {
 				} else {
 					topPosition--
 					if (topPosition < 0) {
+						distance = -layoutState.topOffset
 						layoutState.topOffset = 0
 						layoutState.topPosition = 0
 						break
@@ -266,7 +268,7 @@ class ExtendedLayoutManager : RecyclerView.LayoutManager() {
 		log("topOffset: ${layoutState.topOffset}")
 		log("bottomOffset: ${layoutState.bottomOffset}")
 
-		return dy
+		return distance * direction
 	}
 
 	private fun layoutView(view: View, offset: Int) {
