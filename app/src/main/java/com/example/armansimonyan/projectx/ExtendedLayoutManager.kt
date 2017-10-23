@@ -3,6 +3,7 @@ package com.example.armansimonyan.projectx
 import android.content.Context
 import android.support.v7.widget.RecyclerView
 import android.util.AttributeSet
+import android.util.SparseArray
 import android.view.View
 import android.view.ViewGroup
 
@@ -73,15 +74,28 @@ class ExtendedLayoutManager : RecyclerView.LayoutManager() {
 	override fun onLayoutChildren(recycler: RecyclerView.Recycler, state: RecyclerView.State) {
 		detachAndScrapAttachedViews(recycler)
 
+		val viewCache = SparseArray<RecyclerView.ViewHolder>(childCount)
+		if (state.isPreLayout) {
+			recycler.scrapList.map { viewHolder ->
+				viewCache.put(viewHolder.oldPosition, viewHolder)
+			}
+		}
+
 		val extraSpace = calculateExtraSpace(state, recycler)
 
 		var position = layoutState.topPosition
 		var offset = layoutState.topOffset
 
 		while (offset < height) {
-			val view = recycler.getViewForPosition(position)
-			addView(view)
-			layoutView(view, offset)
+			var view = viewCache.get(position)?.itemView
+			if (view == null) {
+				view = recycler.getViewForPosition(position)
+				addView(view)
+				layoutView(view, offset)
+			} else {
+				addView(view)
+				viewCache.remove(position)
+			}
 
 			position++
 			offset += getDecoratedMeasuredHeight(view)
@@ -93,9 +107,13 @@ class ExtendedLayoutManager : RecyclerView.LayoutManager() {
 		}
 
 		if (state.isPreLayout) {
-			position = layoutAppearingViews(offset, extraSpace, recycler, position)
+//			position = layoutAppearingViews(offset, extraSpace, recycler, position)
 		} else {
-			layoutDisappearingViews(offset, recycler)
+			layoutDisappearingViews(layoutState.topOffset, recycler)
+		}
+
+		(0 until viewCache.size()).map {
+			recycler.recycleView(viewCache.valueAt(it).itemView)
 		}
 
 		log("Drawn $position items")
@@ -113,18 +131,34 @@ class ExtendedLayoutManager : RecyclerView.LayoutManager() {
 		return extraSpace
 	}
 
-	private fun layoutDisappearingViews(offset: Int, recycler: RecyclerView.Recycler) {
-		var disappearingViewOffset = offset
-		recycler.scrapList
+	private fun layoutDisappearingViews(_offset: Int, recycler: RecyclerView.Recycler) {
+		val list = recycler.scrapList
 				.filter { !(it.itemView.layoutParams as LayoutParams).isItemRemoved }
-				.reversed()
-				.map {
-					val view = it.itemView
-					addDisappearingView(view)
-					layoutView(view, disappearingViewOffset)
+				.sortedBy { it.layoutPosition }
 
-					disappearingViewOffset += view.measuredHeight
-				}
+		if (list.isEmpty()) {
+			return
+		}
+
+		if (list[0].layoutPosition == layoutState.bottomPosition + 1) {
+			var topOffset = layoutState.bottomOffset
+			list.map {
+				val view = it.itemView
+				addDisappearingView(view)
+				layoutView(view, topOffset)
+				topOffset += getDecoratedMeasuredHeight(view)
+			}
+		} else if (list[list.lastIndex].layoutPosition == layoutState.topPosition - 1) {
+			var bottomOffset = layoutState.topOffset
+			list.reversed()
+					.map {
+						val view = it.itemView
+						addDisappearingView(view)
+						val decoratedHeight = getDecoratedMeasuredHeight(view)
+						layoutView(view, bottomOffset - decoratedHeight)
+						bottomOffset -= decoratedHeight
+					}
+		}
 	}
 
 	private fun layoutAppearingViews(offset: Int, extraSpace: Int, recycler: RecyclerView.Recycler, position: Int): Int {
